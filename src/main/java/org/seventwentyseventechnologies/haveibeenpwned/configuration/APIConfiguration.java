@@ -20,19 +20,45 @@ public class APIConfiguration {
     private final String userAgent;
 
     /**
-     * The API requires a key
+     * Some APIs requires authorization
      */
     private final String apiKey;
 
+    /**
+     * API version string
+     */
+    private final String apiVersion;
+
+    /**
+     * Constructor without API key - some API endpoints do not require authorization.
+     *
+     * @see <a href="https://haveibeenpwned.com/API/v3#Authorisation">API Documentation for Authorization</a>
+     */
+    public APIConfiguration() {
+        this(null);
+    }
+
+    /**
+     * Constructor with API key.
+     *
+     * @param apiKey api key
+     * @see <a href="https://haveibeenpwned.com/API/v3#Authorisation">API Documentation for Authorization</a>
+     */
     public APIConfiguration(final String apiKey) {
         var properties = loadProperties();
         this.apiKey = apiKey;
-        this.userAgent = properties.getProperty("user-agent");
+        this.userAgent = properties.getProperty(ConfigurationProperties.USER_AGENT.getPropertyKey());
+        this.apiVersion = properties.getProperty(ConfigurationProperties.API_VERSION.getPropertyKey());
     }
 
+    /**
+     * Load properties from file
+     *
+     * @return properties
+     */
     @SneakyThrows
     private Properties loadProperties() {
-        try (var propStream = getClass().getClassLoader().getResourceAsStream(ConfigurationConstants.PROPERTIES_FILE.getValue())) {
+        try (var propStream = getClass().getClassLoader().getResourceAsStream(ConfigurationProperties.PROPERTIES_FILE)) {
             var properties = new Properties();
             properties.load(propStream);
             return properties;
