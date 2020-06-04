@@ -1,9 +1,11 @@
 package org.seventwentyseventechnologies.haveibeenpwned.configuration;
 
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -22,6 +24,7 @@ public class APIConfiguration {
     /**
      * Some APIs requires authorization
      */
+    @Getter(AccessLevel.NONE)
     private final String apiKey;
 
     /**
@@ -52,7 +55,16 @@ public class APIConfiguration {
     }
 
     /**
-     * Load properties from file
+     * Get API key as a nullable Optional
+     *
+     * @return optional
+     */
+    public Optional<String> getApiKey() {
+        return Optional.ofNullable(apiKey);
+    }
+
+    /**
+     * Load library config properties from file
      *
      * @return properties
      */

@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import org.seventwentyseventechnologies.haveibeenpwned.api.DoesNotRequireAPIKey;
 import org.seventwentyseventechnologies.haveibeenpwned.api.v3.transformer.APIToCanonicalModelTransformer;
+import org.seventwentyseventechnologies.haveibeenpwned.api.v3.transformer.JAXRSExceptionProvider;
 import org.seventwentyseventechnologies.haveibeenpwned.configuration.APIConfiguration;
 import org.seventwentyseventechnologies.haveibeenpwned.exception.APIKeyRequiredButNotProvidedException;
 import org.seventwentyseventechnologies.haveibeenpwned.model.Breach;
@@ -16,6 +17,9 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.MediaType;
 import java.time.Instant;
 import java.time.LocalDate;
+
+import static javax.ws.rs.core.Response.Status.Family.SUCCESSFUL;
+import static javax.ws.rs.core.Response.Status.Family.familyOf;
 
 /**
  * API client for haveibeenpwned
@@ -30,6 +34,10 @@ public class APIClient {
      * We will pass the user-agent to the API to identify ourselves
      */
     private static final String USER_AGENT_HEADER_KEY = "user-agent";
+    /**
+     * The API key header key
+     */
+    private static final String API_KEY_HEADER_KEY = "hibp-api-key";
     /**
      * A domain query param filter
      */
@@ -50,6 +58,11 @@ public class APIClient {
      * to canonical {@link Breaches}
      */
     private final APIToCanonicalModelTransformer transformer = APIToCanonicalModelTransformer.INSTANCE;
+
+    /**
+     * JAX-RS web application exception
+     */
+    private final JAXRSExceptionProvider jaxrsExceptionProvider = new JAXRSExceptionProvider();
 
     /**
      * API configuration
@@ -102,10 +115,27 @@ public class APIClient {
      *
      * @param account account
      * @return Breaches for that account
-     * @throws APIKeyRequiredButNotProvidedException if API key not provided in {@link APIConfiguration} during construction
+     * @throws APIKeyRequiredButNotProvidedException if API key not provided to {@link APIConfiguration} during construction
      * @see <a href="https://haveibeenpwned.com/API/v3#BreachesForAccount">API Documentation for Breaches Per Account Endpoint</a>
      */
     public Breaches getBreachesForAccount(final String account) throws APIKeyRequiredButNotProvidedException {
-        throw new UnsupportedOperationException("Not yet implemented");
+        var webTarget = ClientBuilder.newClient().target(BASE_URL + configuration.getApiVersion() + "/breachedaccount/{id}");
+        try (var response = webTarget
+                .resolveTemplate("id", account)
+                .queryParam("truncateResponse", false)
+                .request(MediaType.APPLICATION_JSON)
+                .header(USER_AGENT_HEADER_KEY, configuration.getUserAgent())
+                .header(API_KEY_HEADER_KEY, configuration.getApiKey().orElseThrow(APIKeyRequiredButNotProvidedException::new))
+                .get()) {
+
+            var rawJson = response.readEntity(String.class);
+
+            if (familyOf(response.getStatus()) != SUCCESSFUL) {
+                throw jaxrsExceptionProvider.getException(response);
+            }
+
+            var apiBreaches = GSON.fromJson(rawJson, org.seventwentyseventechnologies.haveibeenpwned.api.v3.model.Breaches.class);
+            return transformer.fromAPI(apiBreaches);
+        }
     }
 }
