@@ -3,6 +3,8 @@ package org.seventwentyseventechnologies.haveibeenpwned.configuration;
 
 import org.testng.annotations.Test;
 
+import java.util.Optional;
+
 import static org.testng.Assert.assertEquals;
 
 /**
@@ -16,7 +18,7 @@ public class APIConfigurationTest {
     public void shouldLoadProperties() {
         var configuration = new APIConfiguration("test-api-key");
 
-        assertEquals(configuration.getApiKey(), "test-api-key");
+        assertEquals(configuration.getApiKey(), Optional.of("test-api-key"));
         assertEquals(configuration.getApiVersion(), "v3");
         assertEquals(configuration.getUserAgent(), "have-i-been-pwned Java Client: org.seventwentyseventechnologies.haveibeenpwned:have-i-been-pwned-client");
     }
